@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tokens SunyGreen — clair par défaut, sombre selon la préférence système. */
+:root {
+  --sg-bg:#F4F2ED; --sg-surface:#FCFBF8; --sg-surface-2:#ECE9E2; --sg-line:#DFDBD2; --sg-line-strong:#C9C4B9;
+  --sg-ink:#1C1B18; --sg-ink-2:#57544D; --sg-ink-3:#6F6B63; --sg-on:#2E7A52; --sg-on-soft:#E2EEE6; --sg-on-ink:#1F5A3B; --sg-on-fg:#FFFFFF;
+  --sg-warn:#8A5D14; --sg-warn-soft:#F3E9D6; --sg-err:#A3412F; --sg-err-soft:#F5E2DC;
+  --sg-shadow:0 1px 2px rgba(28,27,24,.06), 0 10px 30px rgba(28,27,24,.08);
+  --sg-scrim:rgba(28,27,24,.28);
+  /* Ambiance hôtel : bandeau « réception » sombre et filets laiton (décor uniquement, jamais un état). */
+  --sg-lobby:#1F1D1A; --sg-lobby-2:#2A2722; --sg-lobby-ink:#F4F2ED; --sg-lobby-ink-2:#B9B3A6;
+  --sg-brass:#B8975A; --sg-brass-soft:#EFE6D3; --sg-brass-ink:#76592A;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sg-bg:#111210; --sg-surface:#191A18; --sg-surface-2:#232421; --sg-line:#2C2D2A; --sg-line-strong:#46473F;
+    --sg-ink:#EDEBE5; --sg-ink-2:#ABA89F; --sg-ink-3:#8E8B83; --sg-on:#5DBB88; --sg-on-soft:#17281E; --sg-on-ink:#86D4A8; --sg-on-fg:#0B1810;
+    --sg-warn:#D9A54E; --sg-warn-soft:#2B2416; --sg-err:#E58A76; --sg-err-soft:#2E1B17;
+    --sg-shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 32px rgba(0,0,0,.35);
+    --sg-scrim:rgba(0,0,0,.55);
+    --sg-lobby:#0B0B0A; --sg-lobby-2:#1C1B18; --sg-lobby-ink:#EDEBE5; --sg-lobby-ink-2:#A39E93;
+    --sg-brass:#C9A96E; --sg-brass-soft:#2A2418; --sg-brass-ink:#D8BC86;
+    color-scheme: dark;
+  }
+}
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--sg-bg);
+  color: var(--sg-ink);
+  font-family: Geist, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+:focus-visible { outline: 2px solid var(--sg-ink); outline-offset: 3px; }
+
+@keyframes sgSpin { to { transform: rotate(360deg); } }
+@keyframes sgRing { 0% { transform: scale(1); opacity: .6; } 100% { transform: scale(1.2); opacity: 0; } }
+@keyframes sgLive { 0% { transform: scale(1); opacity: .55; } 100% { transform: scale(2.6); opacity: 0; } }
+@keyframes sgTilePulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--sg-ink) 45%, transparent); }
+  100% { box-shadow: 0 0 0 16px color-mix(in oklab, var(--sg-ink) 0%, transparent); }
+}
+@keyframes sgShake { 0%,100% { transform: translateX(0); } 20%,60% { transform: translateX(-8px); } 40%,80% { transform: translateX(8px); } }
+@keyframes sgFadeIn { from { opacity: 0; transform: translate(-50%, -4px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+.sg-spin { animation: sgSpin .8s linear infinite; }
+.sg-demo-stripes {
+  background-color: #26224A;
+  background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.045) 0 10px, transparent 10px 20px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+/* Libellé d'état du kiosque : 38 px (maquette), réduit sur les petits téléphones. */
+.sg-kiosk-title { font-size: clamp(28px, 9vw, 38px); line-height: 1.08; letter-spacing: -.015em; font-weight: 600; }

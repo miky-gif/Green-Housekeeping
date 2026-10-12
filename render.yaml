@@ -1,0 +1,13 @@
+# Déploiement Render (Blueprint) : New + > Blueprint > ce dépôt.
+services:
+  - type: web
+    name: green-housekeeping
+    runtime: docker
+    plan: free
+    numInstances: 1
+    healthCheckPath: /api/health
+    envVars:
+      - key: GH_MODE
+        value: demo
+      - key: GH_HOTEL_NAME
+        value: Hôtel Pilote
