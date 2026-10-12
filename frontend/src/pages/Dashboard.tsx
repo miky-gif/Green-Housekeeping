@@ -111,10 +111,11 @@ export default function Dashboard() {
           <div className="flex-1 overflow-auto px-4 pb-28 pt-8 sm:px-8">
             <div className="mb-6 flex flex-wrap items-end justify-between gap-6">
               <div>
-                <div className="font-mono text-overline uppercase text-brass-ink">
+                <div className="sg-label flex items-center gap-2 text-sg-ink-3">
+                  <span aria-hidden className="h-1.5 w-1.5 bg-accent" />
                   {greeting(now)} · Green Housekeeping
                 </div>
-                <h1 className="mt-1.5 font-display text-display font-normal">Plan de ménage du jour</h1>
+                <h1 className="sg-wide mb-0 mt-2.5 text-[26px] font-semibold leading-tight sm:text-[30px]">Plan de ménage du jour</h1>
                 <div className="mt-2 text-[15px] text-sg-ink-2">
                   {occupied} chambre{occupied > 1 ? 's' : ''} occupée{occupied > 1 ? 's' : ''} sur {rooms.length}
                   {rooms.length - occupied > 0 ? ` · ${rooms.length - occupied} libre${rooms.length - occupied > 1 ? 's' : ''}` : ''}
@@ -146,19 +147,19 @@ export default function Dashboard() {
                 <Counter icon={<RingIcon size={20} />} title="À nettoyer" value={count('off')} sub="Bouton éteint · nettoyage normal" bordered />
                 <Counter icon={<LockIcon size={20} />} title="Non éligibles" value={count('inel')} sub="Séjour d'1 nuit · nettoyage normal" bordered />
               </div>
-              <div className="flex flex-col justify-between gap-3 rounded-sg-lg border border-brass bg-brass-soft px-6 py-5">
-                <div className="flex items-center gap-2.5 text-[15px] font-semibold text-brass-ink">
-                  <LeafIcon />
+              <div className="flex flex-col justify-between gap-3 rounded-sg-lg bg-lobby px-6 py-5 text-lobby-ink">
+                <div className="sg-label flex items-center gap-2.5 text-lobby-ink">
+                  <LeafIcon size={18} />
                   Impact du jour
                 </div>
                 <div>
-                  <div className="font-display text-[44px] leading-none tabular-nums">{minutes ? `≈ ${duration(minutes)}` : '—'}</div>
-                  <div className="mt-1.5 text-[14px] text-sg-ink-2">de ménage libérées pour l'équipe</div>
+                  <div className="font-display text-[40px] font-medium leading-none tabular-nums">{minutes ? `≈ ${duration(minutes)}` : '—'}</div>
+                  <div className="mt-2 text-[14px] text-lobby-ink-2">de ménage libérées pour l'équipe</div>
                 </div>
-                <div className="text-[13px] leading-[1.4] text-sg-ink-2">
+                <div className="border-t border-white/15 pt-3 text-[13px] leading-[1.45] text-lobby-ink-2">
                   {skipped} recouche{skipped > 1 ? 's' : ''} évitée{skipped > 1 ? 's' : ''} · {vouchersToday} voucher{vouchersToday > 1 ? 's' : ''} émis aujourd'hui
                   <br />
-                  <span className="text-sg-ink-3">Estimation : {config?.minutes_per_cleaning ?? 25} min par recouche</span>
+                  Estimation : {config?.minutes_per_cleaning ?? 25} min par recouche
                 </div>
               </div>
             </div>
@@ -256,7 +257,7 @@ function Counter({ icon, title, value, sub, bordered }: { icon: ReactNode; title
         {icon}
         {title}
       </div>
-      <div className="mt-3 font-display text-counter tabular-nums">{value}</div>
+      <div className="mt-3 font-display text-counter font-medium tabular-nums">{value}</div>
       <div className="mt-1.5 text-[14px] text-sg-ink-2">{sub}</div>
     </div>
   );

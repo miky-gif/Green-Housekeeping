@@ -1,7 +1,7 @@
 import type { KeyboardEvent, MouseEvent } from 'react';
 import { byLabel, stayStatus, whenLabel } from '../lib/format';
 import { displayState, type ButtonValue, type Room } from '../lib/types';
-import { DoorPlate } from './Hotel';
+import { DoorPlate, Led } from './Hotel';
 import { CheckIcon, DoorIcon, LockIcon, Spinner, StateIcon, SyncArrowsIcon } from './Icons';
 
 export const STATE_LABEL = { on: 'Pas de nettoyage', off: 'Nettoyage', inel: 'Non éligible', free: 'Chambre libre' } as const;
@@ -60,7 +60,9 @@ export default function RoomTile({ room: r, selected, pulseNote, syncTarget, onO
               {pulseNote}
             </div>
           )}
-          {r.is_suite && <span className="rounded-sg-xs border border-brass px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[.12em] text-brass-ink">Suite</span>}
+          {on && !pulseNote && <Led on mode="steady" size={9} />}
+          {on && pulseNote && <Led on mode="flash" size={9} />}
+          {r.is_suite && <span className="sg-label rounded-sg-xs border border-sg-line-strong px-1.5 py-0.5 text-[10px] text-sg-ink-2">Suite</span>}
         </div>
       </div>
 

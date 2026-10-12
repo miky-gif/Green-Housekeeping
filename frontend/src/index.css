@@ -2,27 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Tokens SunyGreen — clair par défaut, sombre selon la préférence système. */
+/*
+ * Tokens — inspirés de l'identité de l'hôtel : noir et blanc très contrastés,
+ * gris neutres, un accent orange réservé à la marque. Le vert ne sert qu'à
+ * l'état « allumé » (pas de nettoyage), avec toujours une icône et un libellé.
+ */
 :root {
-  --sg-bg:#F4F2ED; --sg-surface:#FCFBF8; --sg-surface-2:#ECE9E2; --sg-line:#DFDBD2; --sg-line-strong:#C9C4B9;
-  --sg-ink:#1C1B18; --sg-ink-2:#57544D; --sg-ink-3:#6F6B63; --sg-on:#2E7A52; --sg-on-soft:#E2EEE6; --sg-on-ink:#1F5A3B; --sg-on-fg:#FFFFFF;
-  --sg-warn:#8A5D14; --sg-warn-soft:#F3E9D6; --sg-err:#A3412F; --sg-err-soft:#F5E2DC;
-  --sg-shadow:0 1px 2px rgba(28,27,24,.06), 0 10px 30px rgba(28,27,24,.08);
-  --sg-scrim:rgba(28,27,24,.28);
-  /* Ambiance hôtel : bandeau « réception » sombre et filets laiton (décor uniquement, jamais un état). */
-  --sg-lobby:#1F1D1A; --sg-lobby-2:#2A2722; --sg-lobby-ink:#F4F2ED; --sg-lobby-ink-2:#B9B3A6;
-  --sg-brass:#B8975A; --sg-brass-soft:#EFE6D3; --sg-brass-ink:#76592A;
+  --sg-bg:#F3F3F1; --sg-surface:#FFFFFF; --sg-surface-2:#ECECEA; --sg-line:#E3E3E0; --sg-line-strong:#C9C9C5;
+  --sg-ink:#161616; --sg-ink-2:#4F4F4C; --sg-ink-3:#6A6A67;
+  --sg-on:#23774D; --sg-on-soft:#DCEEE3; --sg-on-ink:#1A5C3B; --sg-on-fg:#FFFFFF; --sg-led:#2BD47A;
+  --sg-warn:#8A5D14; --sg-warn-soft:#F3E9D6; --sg-err:#A8361F; --sg-err-soft:#F7E1DA;
+  --sg-shadow:0 1px 2px rgba(22,22,22,.05), 0 8px 24px rgba(22,22,22,.07);
+  --sg-raised:0 1px 0 rgba(255,255,255,.9) inset, 0 -2px 6px rgba(0,0,0,.06) inset, 0 14px 30px rgba(22,22,22,.16), 0 3px 8px rgba(22,22,22,.10);
+  --sg-scrim:rgba(22,22,22,.32);
+  /* Marque : bandeau noir façon hôtel, accent orange (décor uniquement, jamais un état). */
+  --sg-lobby:#161616; --sg-lobby-2:#1F1F20; --sg-lobby-ink:#FFFFFF; --sg-lobby-ink-2:#A9A9A6;
+  --sg-accent:#FA4616; --sg-accent-ink:#C2330B;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --sg-bg:#111210; --sg-surface:#191A18; --sg-surface-2:#232421; --sg-line:#2C2D2A; --sg-line-strong:#46473F;
-    --sg-ink:#EDEBE5; --sg-ink-2:#ABA89F; --sg-ink-3:#8E8B83; --sg-on:#5DBB88; --sg-on-soft:#17281E; --sg-on-ink:#86D4A8; --sg-on-fg:#0B1810;
-    --sg-warn:#D9A54E; --sg-warn-soft:#2B2416; --sg-err:#E58A76; --sg-err-soft:#2E1B17;
-    --sg-shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 32px rgba(0,0,0,.35);
-    --sg-scrim:rgba(0,0,0,.55);
-    --sg-lobby:#0B0B0A; --sg-lobby-2:#1C1B18; --sg-lobby-ink:#EDEBE5; --sg-lobby-ink-2:#A39E93;
-    --sg-brass:#C9A96E; --sg-brass-soft:#2A2418; --sg-brass-ink:#D8BC86;
+    --sg-bg:#0E0E0E; --sg-surface:#171717; --sg-surface-2:#202021; --sg-line:#2A2A2B; --sg-line-strong:#444446;
+    --sg-ink:#F2F2F0; --sg-ink-2:#B0B0AC; --sg-ink-3:#8E8E8A;
+    --sg-on:#47C07F; --sg-on-soft:#13261B; --sg-on-ink:#7FD9A6; --sg-on-fg:#06130C; --sg-led:#4BF09A;
+    --sg-warn:#D9A54E; --sg-warn-soft:#2B2416; --sg-err:#F08A70; --sg-err-soft:#2E1813;
+    --sg-shadow:0 1px 2px rgba(0,0,0,.5), 0 10px 28px rgba(0,0,0,.45);
+    --sg-raised:0 1px 0 rgba(255,255,255,.06) inset, 0 -2px 6px rgba(0,0,0,.4) inset, 0 16px 34px rgba(0,0,0,.6), 0 3px 8px rgba(0,0,0,.5);
+    --sg-scrim:rgba(0,0,0,.6);
+    --sg-lobby:#000000; --sg-lobby-2:#161616; --sg-lobby-ink:#FFFFFF; --sg-lobby-ink-2:#9A9A97;
+    --sg-accent:#FA4616; --sg-accent-ink:#FF7A52;
     color-scheme: dark;
   }
 }
@@ -32,22 +40,38 @@ body {
   margin: 0;
   background: var(--sg-bg);
   color: var(--sg-ink);
-  font-family: Geist, system-ui, sans-serif;
+  font-family: 'Archivo Variable', system-ui, sans-serif;
+  font-stretch: 100%;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
 }
 button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 :focus-visible { outline: 2px solid var(--sg-ink); outline-offset: 3px; }
 
+/* Titres façon hôtel : capitales larges, légèrement espacées. */
+.sg-wide { font-stretch: 125%; text-transform: uppercase; letter-spacing: .04em; }
+.sg-label { font-stretch: 112%; text-transform: uppercase; letter-spacing: .12em; font-size: 11px; font-weight: 600; }
+
 @keyframes sgSpin { to { transform: rotate(360deg); } }
-@keyframes sgRing { 0% { transform: scale(1); opacity: .6; } 100% { transform: scale(1.2); opacity: 0; } }
+@keyframes sgRing { 0% { transform: scale(1); opacity: .6; } 100% { transform: scale(1.18); opacity: 0; } }
 @keyframes sgLive { 0% { transform: scale(1); opacity: .55; } 100% { transform: scale(2.6); opacity: 0; } }
 @keyframes sgTilePulse {
-  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--sg-ink) 45%, transparent); }
-  100% { box-shadow: 0 0 0 16px color-mix(in oklab, var(--sg-ink) 0%, transparent); }
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--sg-ink) 40%, transparent); }
+  100% { box-shadow: 0 0 0 14px color-mix(in oklab, var(--sg-ink) 0%, transparent); }
 }
 @keyframes sgShake { 0%,100% { transform: translateX(0); } 20%,60% { transform: translateX(-8px); } 40%,80% { transform: translateX(8px); } }
 @keyframes sgFadeIn { from { opacity: 0; transform: translate(-50%, -4px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/*
+ * Voyant vert. « Respire » lentement tant que la demande est active ;
+ * clignote (≈1,25 Hz, bien en dessous du seuil de 3 éclairs/s) pendant
+ * l'envoi et à la réception d'un message.
+ */
+@keyframes sgBreath { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+@keyframes sgBlink { 0%, 45% { opacity: 1; } 55%, 100% { opacity: .15; } }
+.sg-led-breath { animation: sgBreath 2.8s ease-in-out infinite; }
+.sg-led-blink { animation: sgBlink .8s linear infinite; }
+.sg-led-flash { animation: sgBlink .8s linear 3; }
 
 .sg-spin { animation: sgSpin .8s linear infinite; }
 .sg-demo-stripes {
@@ -59,5 +83,9 @@ button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
-/* Libellé d'état du kiosque : 38 px (maquette), réduit sur les petits téléphones. */
-.sg-kiosk-title { font-size: clamp(28px, 9vw, 38px); line-height: 1.08; letter-spacing: -.015em; font-weight: 600; }
+/* Titre d'état du kiosque, réduit sur les petits téléphones. */
+.sg-kiosk-title { font-size: clamp(22px, 6.6vw, 28px); line-height: 1.12; font-weight: 600; font-stretch: 125%; text-transform: uppercase; letter-spacing: .02em; }
+
+/* Familles : la police « display » est la même, en largeur maximale ; « mono » garde des chiffres alignés. */
+.font-display { font-stretch: 125%; }
+.font-mono { font-variant-numeric: tabular-nums; letter-spacing: .01em; }

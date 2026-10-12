@@ -124,7 +124,7 @@ Variables disponibles :
 | Variable | Défaut | Rôle |
 |---|---|---|
 | `GH_MODE` | `demo` | `demo` ou `production` |
-| `GH_HOTEL_NAME` | `Hôtel Pilote` | nom affiché dans le bandeau et sur l'écran bouton |
+| `GH_HOTEL_NAME` | `The Hotel Brussels` | nom affiché dans le bandeau et sur l'écran bouton |
 | `GH_ROOMS` | `312-316,420-424` | chambres gérées en production (l'étage est déduit du numéro) |
 | `GH_SUITES` | `316,424` | chambres affichées comme suites |
 | `GH_MINUTES_PER_CLEANING` | `25` | durée estimée d'une recouche, pour l'indicateur « Impact du jour » |
@@ -220,15 +220,25 @@ Le laptop affiche `/dashboard`. Le téléphone affiche `/chambre/313`, éteint p
 
 ### Interface
 
-L'écran bouton reprend les maquettes à l'identique (A1–A3, A·S1–S3). Le dashboard en garde
-les tokens `--sg-*` et les typographies (Newsreader, Geist, Geist Mono), avec une ambiance
-hôtelière ajoutée :
-- un bandeau sombre façon réception, avec le monogramme et le nom de l'hôtel ;
-- des numéros de chambre en plaques de porte, et un plan de ménage organisé par étage ;
-- le vocabulaire des étages : arrivée du jour, recouche (nuit 2 sur 4), départ ;
-- un encart « Impact du jour » (temps de ménage libéré, vouchers émis).
+Le design s'inspire de l'identité de The Hotel Brussels : noir et blanc très contrastés, gris
+neutres, titres en capitales larges, et un accent orange réservé à la marque. Une seule
+police, **Archivo** (libre, embarquée), variable en graisse et en largeur, remplace la police
+payante de l'hôtel (GT America Extended). Le nom de l'hôtel est affiché en texte : le logo de
+l'hôtel n'est pas utilisé.
 
-Le laiton est purement décoratif : seul le vert signale un état. Sous 1280 px, le dashboard
+- **Dashboard** : bandeau noir, plan de ménage par étage, vocabulaire des étages (arrivée du
+  jour, recouche nuit 2 sur 4, départ), encart « Impact du jour ».
+- **Bouton de chambre** : une face en relief qui s'enfonce sous le doigt, entourée d'un
+  **anneau lumineux vert** (le voyant) quand le bouton est allumé.
+  - Le voyant **respire** lentement tant que la demande est active.
+  - Il **clignote** pendant l'envoi, puis 3 fois quand un message est transmis ou reçu.
+  - Une ligne sous le bouton traduit ce que dit la lumière, par exemple « Voyant vert ·
+    équipe d'étage prévenue ».
+  - Le clignotement reste sous 1,5 éclair par seconde (seuil de sécurité : 3) et
+    s'arrête si le téléphone demande de réduire les animations.
+- Les tuiles du dashboard portent le même voyant, qui clignote à la réception d'un changement.
+
+L'orange est purement décoratif : seul le vert signale un état. Sous 1280 px, le dashboard
 passe en 3 colonnes avec un panneau en surimpression. Chaque état combine **couleur + icône +
 libellé + forme** :
 

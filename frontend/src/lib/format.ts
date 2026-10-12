@@ -99,9 +99,3 @@ export function duration(min: number): string {
   const m = min % 60;
   return m ? `${h} h ${String(m).padStart(2, '0')}` : `${h} h`;
 }
-
-/** Initiales pour le monogramme de l'hôtel. */
-export function monogram(name: string): string {
-  const words = name.replace(/^(hôtel|hotel|the|le|la|les)\s+/i, '').split(/\s+/).filter(Boolean);
-  return (words.length > 1 ? words[0][0] + words[1][0] : (words[0] ?? 'H')[0]).toUpperCase();
-}

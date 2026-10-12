@@ -27,7 +27,7 @@ def parse_rooms(spec: str) -> list[int]:
 @dataclass
 class Settings:
     mode: str = "demo"
-    hotel_name: str = "Hôtel Pilote"
+    hotel_name: str = "The Hotel Brussels"
     rooms: list[int] = field(default_factory=list)
     suites: set[int] = field(default_factory=set)
     minutes_per_cleaning: int = 25
@@ -50,7 +50,7 @@ def load() -> Settings:
     env = os.environ.get
     return Settings(
         mode=(env("GH_MODE") or "demo").strip().lower(),
-        hotel_name=env("GH_HOTEL_NAME") or "Hôtel Pilote",
+        hotel_name=env("GH_HOTEL_NAME") or "The Hotel Brussels",
         rooms=parse_rooms(env("GH_ROOMS") or "312-316,420-424"),
         suites=set(parse_rooms(env("GH_SUITES") or "316,424")),
         minutes_per_cleaning=int(env("GH_MINUTES_PER_CLEANING") or 25),

@@ -20,7 +20,7 @@ const PANEL_LABEL = {
   free: 'Chambre libre · aucun séjour',
 } as const;
 
-const overline = 'font-mono text-overline uppercase text-sg-ink-3';
+const overline = 'sg-label text-sg-ink-3';
 
 /** Panneau chambre : état, séjour, forçage, appairage, vouchers, historique. */
 export default function RoomPanel({ room: r, overlay, syncTarget, onClose }: Props) {
@@ -86,12 +86,12 @@ export default function RoomPanel({ room: r, overlay, syncTarget, onClose }: Pro
       <div className="flex flex-none items-start justify-between gap-4 border-b border-sg-line px-7 pb-5 pt-6">
         <div className="flex items-center gap-4">
           <DoorPlate number={r.number} size="lg" />
-          <div className="font-mono text-overline uppercase leading-relaxed text-sg-ink-3">
+          <div className="sg-label leading-relaxed text-sg-ink-3">
             {r.floor}e étage
             {r.is_suite && (
               <>
                 <br />
-                <span className="text-brass-ink">Suite</span>
+                <span className="text-sg-ink">Suite</span>
               </>
             )}
           </div>
