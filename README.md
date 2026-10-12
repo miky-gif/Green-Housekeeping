@@ -13,7 +13,7 @@ Chaque appui se voit en temps réel sur l'autre écran (mesuré : 13 à 18 ms en
 
 ## Démarrer
 
-Prérequis : **Python 3.11+** et **Node.js 18+** (20 LTS conseillé).
+Prérequis : **Python 3.11+** et **Node.js 20+** (22 LTS conseillé).
 
 ```bash
 python run.py          # Windows : py run.py
@@ -68,6 +68,42 @@ cd backend && pip install -r requirements.txt && uvicorn app.main:app --host 0.0
 4. Sur le téléphone : luminosité au maximum et mise en veille automatique désactivée.
    Vous pouvez aussi « Ajouter à l'écran d'accueil » pour un affichage plein écran.
 5. Avant d'entrer en salle, cliquez sur **Réinitialiser la démo** (barre violette en bas du dashboard).
+
+---
+
+## Mise en ligne sur Render
+
+Le dépôt contient un `Dockerfile` (frontend compilé et servi par FastAPI, dans une seule image)
+et un `render.yaml` qui décrit le service.
+
+1. **Publier le code sur GitHub.** Créez un dépôt **privé** vide sur <https://github.com/new>,
+   puis, depuis ce dossier :
+   ```bash
+   git remote add origin https://github.com/<votre-compte>/green-housekeeping.git
+   git push -u origin main
+   ```
+2. **Créer le service sur Render.** Dans <https://dashboard.render.com>, cliquez sur
+   **New → Blueprint**, autorisez l'accès à GitHub, choisissez le dépôt, puis validez.
+   Render lit `render.yaml` et crée le service web « green-housekeeping » (offre gratuite, Docker).
+   Pour personnaliser le nom de l'hôtel, modifiez `GH_HOTEL_NAME` dans l'onglet **Environment**.
+3. **Attendre la première compilation** (3 à 5 minutes). Render affiche ensuite l'adresse
+   publique, du type `https://green-housekeeping-xxxx.onrender.com`.
+4. **Envoyer au client** :
+   - le dashboard : `https://…onrender.com/dashboard` ;
+   - le simulateur pour son téléphone : `https://…onrender.com/chambres`, ou le bouton
+     « QR téléphone » de la barre de démo.
+
+Chaque `git push` sur `main` redéploie automatiquement.
+
+**Limites de l'offre gratuite de Render :**
+- **Mise en veille.** Le service s'endort après 15 minutes sans visite. La visite suivante
+  attend environ une minute : les écrans affichent « Connexion… », puis se reconnectent seuls.
+  Ouvrez le lien une minute avant la réunion.
+- **Pas de disque persistant.** Chaque réveil ou redéploiement repart du jeu de données de
+  démo. C'est sans conséquence en mode démo. Pour conserver les données (mode production),
+  passez sur une offre payante et ajoutez un disque monté sur `/data`.
+- **Une seule instance.** Les connexions temps réel sont gérées en mémoire : ne passez pas à
+  plusieurs instances.
 
 ---
 
