@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Lanceur Green Housekeeping : une seule commande.
+"""Lanceur GreenKeeping : une seule commande.
 
-    python run.py            installe ce qui manque, compile le frontend,
-                             démarre le serveur sur 0.0.0.0:8000
-    python run.py --dev      mode développement (Vite + rechargement à chaud)
-    python run.py --reset    repart du jeu de données initial
+    python run.py                 installe ce qui manque, compile le frontend et démarre
+                                  le serveur (production) sur 0.0.0.0:8000 ; au premier
+                                  lancement, propose de créer le compte administrateur
+    python run.py --create-admin  ajoute un compte administrateur
     python run.py --port 9000
+    python run.py --dev           développement (Vite + rechargement à chaud)
+    python run.py --demo          jeu de données de présentation, dans une base séparée
+    python run.py --demo --reset  repart du jeu de présentation initial
 """
 
 from __future__ import annotations
@@ -25,7 +28,7 @@ BACKEND = ROOT / "backend"
 FRONTEND = ROOT / "frontend"
 VENV = BACKEND / ".venv"
 PY = VENV / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
-DB_FILE = BACKEND / "data" / "green_housekeeping.db"
+DEMO_DB = BACKEND / "data" / "greenkeeping-demo.db"
 
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
@@ -93,7 +96,7 @@ def ensure_frontend(build: bool = True) -> None:
         if dist.exists():
             print("  (npm introuvable : utilisation du frontend déjà compilé.)")
             return
-        fail("Node.js 18+ est requis pour compiler le frontend : https://nodejs.org")
+        fail("Node.js 20+ est requis pour compiler le frontend : https://nodejs.org")
     modules = FRONTEND / "node_modules"
     lock = FRONTEND / "package-lock.json"
     marker = modules / ".package-lock.json"
@@ -139,47 +142,54 @@ def port_free(port: int) -> bool:
             return False
 
 
-def banner(port: int) -> None:
+def banner(port: int, demo: bool) -> None:
     ips = lan_ips()
     host = ips[0] if ips else "localhost"
-    phone = f"http://{host}:{port}/chambre/313"
     print("\n" + "=" * 64)
-    print("  Green Housekeeping · SunyGreen — démo prête")
+    print(f"  GreenKeeping · Green Housekeeping — {'présentation' if demo else 'en service'}")
     print("=" * 64)
-    print(f"  Dashboard (laptop)   http://localhost:{port}/dashboard")
-    print(f"  Bouton (téléphone)   {phone}")
-    for other in ips[1:]:
-        print(f"                       http://{other}:{port}/chambre/313  (autre interface)")
-    print("  Chambres disponibles : 312-316, 420-424")
-    if ips:
-        print("\n  Scannez ce QR code avec le téléphone (même Wi-Fi) :\n")
-        subprocess.run([str(PY), "-c", "import segno,sys; segno.make(sys.argv[1], micro=False).terminal(compact=True)", phone],
-                       env=dict(os.environ, PYTHONIOENCODING="utf-8"))
-    else:
-        print("\n  Aucune adresse réseau détectée : connectez le laptop au Wi-Fi ou à un partage de connexion.")
+    print(f"  Connexion de l'équipe  http://{host}:{port}/connexion")
+    print(f"  Bouton en chambre      http://{host}:{port}/chambre/<numéro>")
+    print("                         (QR code de chaque chambre : Chambres › Détail › Écran en chambre)")
+    if not ips:
+        print("\n  Aucune adresse réseau détectée : seul ce poste peut accéder à l'application.")
     print("\n  Ctrl+C pour arrêter.\n", flush=True)
 
 
 # -------------------------------------------------------------------- main
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Lance la démo Green Housekeeping.")
+    ap = argparse.ArgumentParser(description="Lance GreenKeeping.")
     ap.add_argument("--port", type=int, default=8000)
     ap.add_argument("--dev", action="store_true", help="Vite (5173) + uvicorn --reload")
-    ap.add_argument("--reset", action="store_true", help="supprime la base et repart du jeu initial")
+    ap.add_argument("--demo", action="store_true", help="jeu de données de présentation (base séparée)")
+    ap.add_argument("--reset", action="store_true", help="avec --demo : repart du jeu de présentation initial")
+    ap.add_argument("--create-admin", action="store_true", help="ajoute un compte administrateur puis quitte")
     args = ap.parse_args()
 
-    if not port_free(args.port):
-        fail(f"Le port {args.port} est déjà utilisé : la démo tourne peut-être déjà "
-             f"(ouvrez http://localhost:{args.port}/dashboard). Sinon : python run.py --port {args.port + 1}")
+    if args.demo:
+        os.environ["GH_MODE"] = "demo"
+    demo = (os.environ.get("GH_MODE") or "production").strip().lower() == "demo"
+    if args.reset and not demo:
+        fail("--reset n'est disponible qu'avec --demo : les données de production ne sont jamais effacées.")
 
     ensure_backend()
+    if args.create_admin:
+        sys.exit(subprocess.call([str(PY), "-m", "app.cli", "create-admin"], cwd=BACKEND))
+
+    if not port_free(args.port):
+        fail(f"Le port {args.port} est déjà utilisé : GreenKeeping tourne peut-être déjà "
+             f"(ouvrez http://localhost:{args.port}/connexion). Sinon : python run.py --port {args.port + 1}")
+
     ensure_frontend(build=not args.dev)
 
     if args.reset:
         for suffix in ("", "-wal", "-shm"):
-            Path(str(DB_FILE) + suffix).unlink(missing_ok=True)
-        print("  Base réinitialisée.")
+            Path(str(DEMO_DB) + suffix).unlink(missing_ok=True)
+        print("  Base de présentation réinitialisée.")
+    if not demo:
+        # Premier lancement : création du compte administrateur dans le terminal.
+        subprocess.call([str(PY), "-m", "app.cli", "ensure-admin"], cwd=BACKEND)
 
     uvicorn = [str(PY), "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", str(args.port),
                "--no-access-log", "--ws-ping-interval", "10", "--ws-ping-timeout", "10"]
@@ -189,10 +199,10 @@ def main() -> None:
             procs.append(subprocess.Popen(uvicorn + ["--reload"], cwd=BACKEND))
             env = dict(os.environ, GH_BACKEND=f"http://127.0.0.1:{args.port}")
             procs.append(subprocess.Popen([shutil.which("npm") or "npm", "run", "dev"], cwd=FRONTEND, env=env))
-            banner(5173)
+            banner(5173, demo)
         else:
             procs.append(subprocess.Popen(uvicorn, cwd=BACKEND))
-            banner(args.port)
+            banner(args.port, demo)
         procs[0].wait()
     except KeyboardInterrupt:
         pass

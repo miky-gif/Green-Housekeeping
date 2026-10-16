@@ -1,9 +1,12 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-// Archivo, variable en graisse (100–900) et en largeur (62–125 %), embarquée : aucune requête Internet.
-import '@fontsource-variable/archivo/wdth.css';
+// Plus Jakarta Sans (police de la maquette), variable 200–800, embarquée : aucune requête Internet.
+import '@fontsource-variable/plus-jakarta-sans/index.css';
 import './index.css';
 import App from './App';
+import { applyTheme } from './lib/theme';
+
+applyTheme();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

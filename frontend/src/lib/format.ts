@@ -1,101 +1,128 @@
-import type { Room, RoomEvent, Source, Stay } from './types';
+import type { Room, RoomEvent, Source } from './types';
 
 const pad = (n: number) => String(n).padStart(2, '0');
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-export function hhmm(iso: string | Date): string {
-  const d = typeof iso === 'string' ? new Date(iso) : iso;
+const DAYS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+const DAYS_SHORT = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const MONTHS_SHORT = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+
+const toDate = (v: string | Date) => (typeof v === 'string' ? new Date(v) : v);
+
+export function hhmm(v: string | Date): string {
+  const d = toDate(v);
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 }
-
-const WEEKDAYS = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
-const MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-
-/** « lun. 12 oct. » */
-export function dateLabel(d: Date): string {
-  return `${WEEKDAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+function daysAgo(v: string | Date): number {
+  return Math.round((startOfDay(new Date()) - startOfDay(toDate(v))) / 86_400_000);
 }
-export const DateLabel = (d: Date) => cap(dateLabel(d));
 
-/** Date ISO AAAA-MM-JJ (sans fuseau) → Date locale. */
+/** « Jeu. 15 oct · 15:14 » */
+export function topbarDate(d: Date): string {
+  return `${cap(DAYS[d.getDay()].slice(0, 3))}. ${d.getDate()} ${MONTHS_SHORT[d.getMonth()].replace('.', '')} · ${hhmm(d)}`;
+}
+
+/** Date AAAA-MM-JJ (sans fuseau) → Date locale. */
 export function parseDay(day: string): Date {
   const [y, m, dd] = day.split('-').map(Number);
   return new Date(y, m - 1, dd);
 }
 
-/** « Aujourd'hui », « Hier » ou « Sam. 10 oct. » */
-export function dayLabel(iso: string): string {
-  const d = new Date(iso);
-  const diff = Math.round((startOfDay(new Date()) - startOfDay(d)) / 86_400_000);
-  if (diff === 0) return "Aujourd'hui";
-  if (diff === 1) return 'Hier';
-  return DateLabel(d);
+/** « 14 oct. » */
+export const dayMonth = (d: Date) => `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+
+/** « Lun », « Mar »… pour l'axe des graphiques. */
+export const weekdayShort = (day: string) => DAYS_SHORT[parseDay(day).getDay()];
+
+/** « Aujourd'hui · jeudi 15 octobre », « Hier · mercredi 14 octobre », « Lundi 12 octobre » */
+export function dayHeader(v: string | Date): string {
+  const d = toDate(v);
+  const label = `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  const ago = daysAgo(d);
+  if (ago === 0) return `Aujourd’hui · ${label}`;
+  if (ago === 1) return `Hier · ${label}`;
+  return cap(label);
 }
 
-/** « 08:42 » aujourd'hui, « Hier 16:02 » sinon. */
-export function whenLabel(iso: string): string {
-  const day = dayLabel(iso);
-  return day === "Aujourd'hui" ? hhmm(iso) : `${day} ${hhmm(iso)}`;
+/** « 15:02 » aujourd'hui, sinon « 14 oct ». */
+export function journalWhen(v: string): string {
+  return daysAgo(v) === 0 ? hhmm(v) : `${toDate(v).getDate()} ${MONTHS_SHORT[toDate(v).getMonth()].replace('.', '')}`;
 }
 
 export const nightsLabel = (n: number) => `${n} nuit${n > 1 ? 's' : ''}`;
 
-/** Changement système initié par une personne (réception, départ, démo) plutôt qu'automatique. */
-const MANUAL_SYSTEM = ['réception', 'départ', 'démo'];
-const manualSystem = (actor: string | null) => !!actor && MANUAL_SYSTEM.some((p) => actor.startsWith(p));
-
-/** Qui a fait le dernier changement, côté dashboard. */
-export function byLabel(r: Pick<Room, 'updated_by' | 'actor'>): string {
-  if (r.updated_by === 'guest') return 'Client';
-  if (r.updated_by === 'staff') return 'Gouvernante';
-  if (manualSystem(r.actor)) return cap(r.actor!.split(' · ')[0]);
-  return 'Auto · arrivée';
+export function initials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
 }
 
-/** Qui a fait le dernier changement, côté client (2e personne). */
-export function guestByLabel(r: Pick<Room, 'updated_by' | 'actor'>): string {
-  if (r.updated_by === 'guest') return 'par vous';
-  if (r.updated_by === 'staff') return 'par la gouvernante';
-  return manualSystem(r.actor) ? 'séjour mis à jour' : 'à votre arrivée';
+const BY: Record<Source, string> = { guest: 'par le client', staff: 'par la gouvernante', system: 'par le système' };
+
+/** « Modifié à 09:12 par le client », « Modifié hier à 22:40 par le client » */
+export function modifiedLine(r: Pick<Room, 'updated_at' | 'updated_by'>): string {
+  const ago = daysAgo(r.updated_at);
+  const when = ago === 0 ? `à ${hhmm(r.updated_at)}` : ago === 1 ? `hier à ${hhmm(r.updated_at)}` : `le ${dayMonth(toDate(r.updated_at))}`;
+  return `Modifié ${when} ${BY[r.updated_by]}`;
 }
 
-export function eventSub(e: RoomEvent): string {
-  const labels: Record<Source, string> = { guest: 'Client', staff: 'Gouvernante · Forcé à distance', system: '' };
-  if (e.source !== 'system') return labels[e.source];
-  return manualSystem(e.actor) ? cap(e.actor) : `Auto · ${e.actor}`;
+/** « 09:12 · par le client » (vue liste) */
+export function changeShort(r: Pick<Room, 'updated_at' | 'updated_by'>): string {
+  const ago = daysAgo(r.updated_at);
+  return `${ago === 0 ? '' : ago === 1 ? 'hier ' : `${dayMonth(toDate(r.updated_at))} `}${hhmm(r.updated_at)} · ${BY[r.updated_by]}`;
 }
 
-/** « 14 oct. » */
-export const dayMonth = (d: Date) => `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+const kind = (e: RoomEvent) => e.actor.split(' · ')[0];
 
-/** « Lundi 12 octobre » */
-const LONG_DAYS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
-const LONG_MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-export const longDate = (d: Date) => cap(`${LONG_DAYS[d.getDay()]} ${d.getDate()} ${LONG_MONTHS[d.getMonth()]}`);
-
-/** Vocabulaire des étages : arrivée, recouche, départ. */
-export function stayStatus(stay: Stay, today = new Date()): { label: string; detail: string } {
-  const day = 86_400_000;
-  const t = startOfDay(today);
-  const inD = parseDay(stay.check_in).getTime();
-  const outD = parseDay(stay.check_out).getTime();
-  const out = parseDay(stay.check_out);
-  if (t >= outD) return { label: "Départ aujourd'hui", detail: `Séjour ${nightsLabel(stay.nights)}` };
-  if (t < inD) return { label: `Arrivée ${dayMonth(parseDay(stay.check_in))}`, detail: `Séjour ${nightsLabel(stay.nights)}` };
-  const night = Math.round((t - inD) / day) + 1;
-  const departure = outD - t === day ? 'départ demain' : `départ ${dayMonth(out)}`;
-  if (night === 1) return { label: 'Arrivée du jour', detail: `${nightsLabel(stay.nights)} · ${departure}` };
-  return { label: `Recouche · nuit ${night} sur ${stay.nights}`, detail: cap(departure) };
+/** Libellé d'un événement (Historique, Journal). */
+export function eventTitle(e: RoomEvent): string {
+  const on = e.to_state === 'on';
+  if (e.source === 'guest') return on ? 'Le client renonce au nettoyage' : 'Le client demande son nettoyage';
+  if (e.source === 'staff') return on ? 'Forcée sans nettoyage' : 'Nettoyage rétabli';
+  switch (kind(e)) {
+    case 'arrivée':
+      return on ? 'Arrivée — bouton allumé par défaut' : e.eligible ? 'Arrivée — bouton éteint' : 'Arrivée — séjour d’une nuit';
+    case 'départ':
+      return 'Départ — chambre libérée';
+    case 'réception':
+      return on ? 'Séjour prolongé — bouton allumé' : e.eligible ? 'Séjour modifié' : 'Séjour raccourci — option fermée';
+    case 'règles':
+      return on ? 'Règles modifiées — chambre éligible' : 'Règles modifiées — option fermée';
+    default:
+      return 'Changement automatique';
+  }
 }
 
-/** « 1 h 40 », « 25 min » */
-export function duration(min: number): string {
-  if (min < 60) return `${min} min`;
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return m ? `${h} h ${String(m).padStart(2, '0')}` : `${h} h`;
+/** Ligne d'« Activité du jour » : « Chambre 1802 forcée sans nettoyage par la gouvernante ». */
+export function activityLine(e: RoomEvent): string {
+  const n = e.room;
+  const on = e.to_state === 'on';
+  if (e.source === 'guest') return `Chambre ${n} — le client ${on ? 'renonce au nettoyage' : 'demande son nettoyage'}`;
+  if (e.source === 'staff') return on ? `Chambre ${n} forcée sans nettoyage par la gouvernante` : `Chambre ${n} — nettoyage rétabli par la gouvernante`;
+  switch (kind(e)) {
+    case 'arrivée':
+      return on ? `Chambre ${n} — arrivée, bouton allumé par le système` : `Chambre ${n} — arrivée, séjour ${e.eligible ? 'éligible' : 'd’une nuit'}`;
+    case 'départ':
+      return `Chambre ${n} — départ, chambre libérée`;
+    default:
+      return `Chambre ${n} — ${eventTitle(e).toLowerCase()}`;
+  }
+}
+
+/** Auteur affiché : « Client », « Élodie Martens », « Système ». */
+export function authorLabel(e: RoomEvent): string {
+  if (e.source === 'guest') return 'Client';
+  if (e.source === 'staff') return e.user_name ?? 'Gouvernante';
+  return 'Système';
+}
+
+/** Sous-ligne du Journal : « Gouvernante · Élodie Martens », « Système », « Client ». */
+export function journalSub(e: RoomEvent): string {
+  if (e.source === 'guest') return 'Client';
+  if (e.source === 'staff') return e.user_name ? `Gouvernante · ${e.user_name}` : 'Gouvernante';
+  return e.user_name ? `Système · saisi par ${e.user_name}` : 'Système';
 }

@@ -13,8 +13,8 @@ RUN npm run build
 FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    GH_MODE=demo \
-    GH_DB_URL=sqlite:////data/green_housekeeping.db \
+    GH_MODE=production \
+    GH_DB_URL=sqlite:////data/greenkeeping.db \
     FORWARDED_ALLOW_IPS=* \
     PORT=8000
 WORKDIR /app/backend

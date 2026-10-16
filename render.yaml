@@ -1,13 +1,28 @@
 # Déploiement Render (Blueprint) : New + > Blueprint > ce dépôt.
+#
+# Production : les données (comptes, séjours, journal) doivent survivre aux
+# redémarrages. Il faut donc un disque persistant, disponible à partir de
+# l'offre « Starter » (payante). L'offre gratuite efface tout à chaque réveil.
 services:
   - type: web
-    name: green-housekeeping
+    name: greenkeeping
     runtime: docker
-    plan: free
-    numInstances: 1
+    plan: starter
+    numInstances: 1          # une seule instance : connexions temps réel en mémoire
     healthCheckPath: /api/health
+    disk:
+      name: greenkeeping-data
+      mountPath: /data       # base SQLite : /data/greenkeeping.db
+      sizeGB: 1
     envVars:
       - key: GH_MODE
-        value: demo
+        value: production
       - key: GH_HOTEL_NAME
         value: The Hotel Brussels
+      # Premier compte administrateur : Render demande les valeurs à la création.
+      - key: GH_ADMIN_NAME
+        sync: false
+      - key: GH_ADMIN_EMAIL
+        sync: false
+      - key: GH_ADMIN_PASSWORD
+        sync: false

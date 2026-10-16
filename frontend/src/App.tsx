@@ -1,29 +1,56 @@
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import AppShell from './components/AppShell';
+import { Spinner } from './components/Icons';
 import Dashboard from './pages/Dashboard';
+import History from './pages/History';
+import Login from './pages/Login';
+import Reports from './pages/Reports';
 import RoomButton from './pages/RoomButton';
-import Simulator from './pages/Simulator';
+import Rooms from './pages/Rooms';
+import Settings from './pages/Settings';
 import { navigate, usePath } from './lib/nav';
-import { store, useStore } from './lib/store';
+import { useSession } from './lib/session';
+import { store } from './lib/store';
+
+const STAFF_PAGES: Record<string, () => ReactNode> = {
+  '/dashboard': () => <Dashboard />,
+  '/dashboard/chambres': () => <Rooms />,
+  '/dashboard/historique': () => <History />,
+  '/dashboard/rapports': () => <Reports />,
+  '/dashboard/parametres': () => <Settings />,
+};
 
 export default function App() {
-  const path = usePath();
-  const { config } = useStore();
+  const path = usePath().replace(/\/+$/, '') || '/';
+  const session = useSession();
 
   useEffect(() => {
     store.start();
-  }, []);
+    void session.load();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const match = path.match(/^\/chambre\/(\d+)\/?$/);
-  const roomNo = match ? Number(match[1]) : null;
-  const isDashboard = /^\/dashboard\/?$/.test(path);
-  // Le simulateur client n'existe qu'en mode démo.
-  const isSimulator = /^\/chambres\/?$/.test(path) && config?.mode !== 'production';
+  // Écran public : le bouton en chambre (l'appareil de la chambre n'a pas de compte).
+  const roomMatch = path.match(/^\/chambre\/(\d+)$/);
+  if (roomMatch) return <RoomButton number={Number(roomMatch[1])} />;
+  if (path === '/connexion') return <Login />;
 
-  useEffect(() => {
-    if (roomNo === null && !isDashboard && !isSimulator) navigate('/dashboard', true);
-  }, [roomNo, isDashboard, isSimulator]);
+  // Espace équipe : connexion requise.
+  const page = STAFF_PAGES[path];
+  if (!page) return <Redirect to="/dashboard" />;
+  if (session.user === undefined) return <FullscreenLoader />;
+  if (session.user === null) return <Redirect to={`/connexion?suite=${encodeURIComponent(path + location.search)}`} />;
+  return <AppShell>{page()}</AppShell>;
+}
 
-  if (roomNo !== null) return <RoomButton number={roomNo} />;
-  if (isSimulator) return <Simulator />;
-  return <Dashboard />;
+function Redirect({ to }: { to: string }) {
+  useEffect(() => navigate(to, true), [to]);
+  return null;
+}
+
+function FullscreenLoader() {
+  return (
+    <div className="grid min-h-[100dvh] place-items-center bg-canvas text-ink-500">
+      <Spinner size={24} />
+    </div>
+  );
 }

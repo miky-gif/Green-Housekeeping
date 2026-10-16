@@ -6,9 +6,9 @@ from typing import Optional
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, col, select
 
+from .config import hotel_today
 from .models import ButtonState, Event, Room, Stay, Voucher, utcnow
 
-MIN_NIGHTS_ELIGIBLE = 2
 VOUCHER_EUR = 5
 
 
@@ -19,9 +19,15 @@ class BusinessError(Exception):
         self.message = message
 
 
-def is_eligible(stay: Optional[Stay]) -> bool:
-    """Règle 1 : éligible si le séjour compte au moins 2 nuits."""
-    return stay is not None and stay.nights >= MIN_NIGHTS_ELIGIBLE
+def _program(session: Session):
+    from . import program  # import tardif : program dépend des modèles uniquement
+
+    return program.load(session)
+
+
+def is_eligible(stay: Optional[Stay], min_nights: int = 2) -> bool:
+    """Règle 1 : éligible si le séjour atteint le séjour minimum (2 nuits par défaut)."""
+    return stay is not None and stay.nights >= min_nights
 
 
 def nights_label(n: int) -> str:
@@ -64,22 +70,29 @@ def voucher_payload(v: Voucher, room_number: int) -> dict:
         "amount_eur": v.amount_eur,
         "issued_at": _iso(v.issued_at),
         "status": v.status,
+        "delivered_at": _iso(v.delivered_at) if v.delivered_at else None,
     }
 
 
-def event_payload(e: Event) -> dict:
-    return {
+def event_payload(e: Event, room_number: Optional[int] = None) -> dict:
+    data = {
         "id": e.id,
         "from_state": e.from_state,
         "to_state": e.to_state,
         "source": e.source,
         "actor": e.actor,
+        "user_name": e.user_name,
         "eligible": e.eligible,
         "created_at": _iso(e.created_at),
     }
+    if room_number is not None:
+        data["room"] = room_number
+    return data
 
 
 def room_payload(session: Session, room: Room) -> dict:
+    """État public d'une chambre (diffusé à tous, y compris aux écrans en chambre) :
+    aucun nom de membre de l'équipe, aucun code de voucher."""
     bs = button_state(session, room.id)
     stay = current_stay(session, room.id)
     last = session.exec(
@@ -88,11 +101,13 @@ def room_payload(session: Session, room: Room) -> dict:
     voucher = None
     if stay is not None:
         v = session.exec(select(Voucher).where(Voucher.stay_id == stay.id)).first()
-        voucher = voucher_payload(v, room.number) if v else None
+        if v:
+            voucher = {"id": v.id, "status": v.status, "issued_at": _iso(v.issued_at)}
     return {
         "number": room.number,
         "floor": room.floor,
         "is_suite": room.is_suite,
+        "room_type": room.room_type,
         "state": bs.state,
         "eligible": bs.eligible,
         "updated_at": _iso(bs.updated_at),
@@ -133,6 +148,21 @@ def room_detail(session: Session, number: int) -> dict:
     }
 
 
+def list_events(
+    session: Session, *, since: Optional[datetime] = None, source: Optional[str] = None,
+    room: Optional[int] = None, limit: int = 500,
+) -> list[dict]:
+    q = select(Event, Room.number).join(Room, Room.id == Event.room_id)
+    if since is not None:
+        q = q.where(Event.created_at >= since)
+    if source:
+        q = q.where(Event.source == source)
+    if room is not None:
+        q = q.where(Room.number == room)
+    rows = session.exec(q.order_by(col(Event.created_at).desc(), col(Event.id).desc()).limit(limit)).all()
+    return [event_payload(e, number) for e, number in rows]
+
+
 # --------------------------------------------------------------- écriture
 
 def _write_change(
@@ -144,6 +174,7 @@ def _write_change(
     eligible: bool,
     source: str,
     actor: str,
+    user_name: Optional[str] = None,
     at: Optional[datetime] = None,
 ) -> Event:
     """Règle 4 : un changement = une ligne d'Event (le commit est fait par l'appelant)."""
@@ -154,6 +185,7 @@ def _write_change(
         to_state=to_state,
         source=source,
         actor=actor,
+        user_name=user_name,
         eligible=eligible,
         created_at=at,
     )
@@ -186,10 +218,11 @@ def guest_toggle(session: Session, number: int, to: Optional[str] = None) -> dic
     if stay is None:
         raise BusinessError(409, f"Aucun séjour en cours pour la chambre {number} : le bouton est inactif.")
     if not bs.eligible:
+        min_nights = _program(session).min_nights
         raise BusinessError(
             409,
-            f"Séjour d'1 nuit : le bouton n'est pas actionnable. "
-            f"L'option sans nettoyage est disponible à partir de {MIN_NIGHTS_ELIGIBLE} nuits.",
+            f"Séjour trop court : le bouton n'est pas actionnable. "
+            f"L'option sans nettoyage est disponible à partir de {nights_label(min_nights)}.",
         )
     target = to or ("off" if bs.state == "on" else "on")
     if target == bs.state:
@@ -202,53 +235,58 @@ def guest_toggle(session: Session, number: int, to: Optional[str] = None) -> dic
     return room_payload(session, room)
 
 
-def staff_force(session: Session, number: int, state: str) -> dict:
+def staff_force(session: Session, number: int, state: str, user_name: Optional[str] = None) -> dict:
     """Règle 3 : la gouvernante force n'importe quel état, éligible ou non."""
+    if not _program(session).staff_force:
+        raise BusinessError(403, "Le forçage à distance est désactivé dans les paramètres.")
     room = get_room(session, number)
     bs = button_state(session, room.id)
     if bs.state == state:
         return room_payload(session, room)
-    _write_change(session, room, bs, to_state=state, eligible=bs.eligible, source="staff", actor="gouvernante")
+    _write_change(session, room, bs, to_state=state, eligible=bs.eligible, source="staff",
+                  actor="gouvernante", user_name=user_name)
     session.commit()
     return room_payload(session, room)
 
 
-def set_stay(session: Session, number: int, nights: int, today: Optional[date] = None) -> dict:
+def set_stay(session: Session, number: int, nights: int, user_name: Optional[str] = None,
+             today: Optional[date] = None) -> dict:
     """Saisie réception (en attendant le PMS) : enregistre une arrivée ou modifie la durée."""
+    prog = _program(session)
     room = get_room(session, number)
     bs = button_state(session, room.id)
     stay = current_stay(session, room.id)
-    today = today or date.today()
+    today = today or hotel_today()
 
     if stay is None:
         stay = Stay(room_id=room.id, nights=nights, check_in=today, check_out=today + timedelta(days=nights))
         session.add(stay)
         session.flush()
-        eligible = is_eligible(stay)
-        # Règle 2 : séjour éligible créé → bouton allumé par le système.
+        eligible = is_eligible(stay, prog.min_nights)
+        # Règle 2 : séjour éligible créé → bouton allumé par le système (réglable).
         _write_change(
             session, room, bs,
-            to_state="on" if eligible else "off", eligible=eligible,
-            source="system", actor=f"arrivée · séjour de {nights_label(nights)}",
+            to_state="on" if eligible and prog.default_on_arrival else "off", eligible=eligible,
+            source="system", actor=f"arrivée · séjour de {nights_label(nights)}", user_name=user_name,
         )
     else:
         stay.nights = nights
         stay.check_out = stay.check_in + timedelta(days=nights)
         session.add(stay)
-        eligible = is_eligible(stay)
+        eligible = is_eligible(stay, prog.min_nights)
         if eligible != bs.eligible:
             # Devient éligible → allumé (comme à l'arrivée) ; devient
             # inéligible → éteint et verrouillé (règle 1).
             _write_change(
                 session, room, bs,
-                to_state="on" if eligible else "off", eligible=eligible,
-                source="system", actor=f"réception · séjour modifié à {nights_label(nights)}",
+                to_state="on" if eligible and prog.default_on_arrival else "off", eligible=eligible,
+                source="system", actor=f"réception · séjour modifié à {nights_label(nights)}", user_name=user_name,
             )
     session.commit()
     return room_payload(session, room)
 
 
-def end_stay(session: Session, number: int) -> dict:
+def end_stay(session: Session, number: int, user_name: Optional[str] = None) -> dict:
     """Départ du client : la chambre est libérée et son bouton éteint et verrouillé."""
     room = get_room(session, number)
     bs = button_state(session, room.id)
@@ -259,6 +297,63 @@ def end_stay(session: Session, number: int) -> dict:
     stay.closed_at = at
     session.add(stay)
     _write_change(session, room, bs, to_state="off", eligible=False,
-                  source="system", actor="départ · chambre libérée", at=at)
+                  source="system", actor="départ · chambre libérée", user_name=user_name, at=at)
     session.commit()
     return room_payload(session, room)
+
+
+def apply_min_nights(session: Session, min_nights: int, user_name: Optional[str] = None) -> list[int]:
+    """Après un changement du séjour minimum : réévalue l'éligibilité des séjours en cours."""
+    changed = []
+    for room in session.exec(select(Room).order_by(Room.number)).all():
+        stay = current_stay(session, room.id)
+        if stay is None:
+            continue
+        bs = button_state(session, room.id)
+        eligible = is_eligible(stay, min_nights)
+        if eligible == bs.eligible:
+            continue
+        _write_change(
+            session, room, bs, to_state="on" if eligible else "off", eligible=eligible,
+            source="system", actor=f"règles · séjour minimum {nights_label(min_nights)}", user_name=user_name,
+        )
+        changed.append(room.number)
+    session.commit()
+    return changed
+
+
+def set_voucher_status(session: Session, voucher_id: int, status: str) -> int:
+    """Le bar remet la boisson (ou annule). Renvoie le numéro de chambre concerné."""
+    v = session.get(Voucher, voucher_id)
+    if v is None:
+        raise BusinessError(404, "Voucher introuvable.")
+    v.status = status
+    v.delivered_at = utcnow() if status == "remis" else None
+    session.add(v)
+    session.commit()
+    room = session.get(Room, v.room_id)
+    return room.number
+
+
+def add_room(session: Session, number: int, room_type: str) -> dict:
+    if session.exec(select(Room).where(Room.number == number)).first():
+        raise BusinessError(409, f"La chambre {number} fait déjà partie du programme.")
+    room = Room(number=number, floor=number // 100, room_type=room_type.strip() or "Chambre",
+                is_suite="suite" in room_type.lower())
+    session.add(room)
+    session.flush()
+    session.add(ButtonState(room_id=room.id, state="off", eligible=False, updated_by="system"))
+    session.commit()
+    return room_payload(session, room)
+
+
+def remove_room(session: Session, number: int) -> None:
+    """Retire une chambre du programme, uniquement si elle n'a encore aucun historique
+    (le journal d'audit est immuable)."""
+    room = get_room(session, number)
+    if session.exec(select(Event.id).where(Event.room_id == room.id)).first() is not None:
+        raise BusinessError(409, f"La chambre {number} a un historique : elle ne peut pas être retirée.")
+    for bs in session.exec(select(ButtonState).where(ButtonState.room_id == room.id)).all():
+        session.delete(bs)
+    session.delete(room)
+    session.commit()

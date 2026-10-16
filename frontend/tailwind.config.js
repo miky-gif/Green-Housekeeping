@@ -1,39 +1,25 @@
-/** Tokens Green Housekeeping (variables CSS --sg-*), alignés sur l'identité de l'hôtel. */
+/** Tokens GreenKeeping (variables CSS de la maquette, clair et sombre). */
 /** @type {import('tailwindcss').Config} */
-const archivo = ['"Archivo Variable"', 'system-ui', 'sans-serif'];
-
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        sg: {
-          bg: 'var(--sg-bg)', surface: 'var(--sg-surface)', 'surface-2': 'var(--sg-surface-2)',
-          line: 'var(--sg-line)', 'line-strong': 'var(--sg-line-strong)',
-          ink: 'var(--sg-ink)', 'ink-2': 'var(--sg-ink-2)', 'ink-3': 'var(--sg-ink-3)',
-          on: 'var(--sg-on)', 'on-soft': 'var(--sg-on-soft)', 'on-ink': 'var(--sg-on-ink)', 'on-fg': 'var(--sg-on-fg)', led: 'var(--sg-led)',
-          warn: 'var(--sg-warn)', 'warn-soft': 'var(--sg-warn-soft)', err: 'var(--sg-err)', 'err-soft': 'var(--sg-err-soft)',
-        },
-        // Marque : décor uniquement, jamais porteur d'un état.
-        lobby: { DEFAULT: 'var(--sg-lobby)', 2: 'var(--sg-lobby-2)', ink: 'var(--sg-lobby-ink)', 'ink-2': 'var(--sg-lobby-ink-2)' },
-        accent: { DEFAULT: 'var(--sg-accent)', ink: 'var(--sg-accent-ink)' },
-        demo: { bg: '#26224A', deep: '#1A1736', accent: '#C9C2FF', 'accent-ink': '#1B1740', line: '#8F86E8', ink: '#EEEAFE' },
+        brand: { 50: 'var(--orange-50)', 100: 'var(--orange-100)', 200: 'var(--orange-200)', 500: 'var(--orange-500)', 600: 'var(--orange-600)' },
+        ink: { 900: 'var(--ink-900)', 700: 'var(--ink-700)', 500: 'var(--ink-500)', 300: 'var(--ink-300)' },
+        line: 'var(--line)',
+        surface: 'var(--surface)',
+        canvas: 'var(--canvas)',
+        ok: { text: 'var(--ok-text)', bg: 'var(--ok-bg)', dot: 'var(--ok-dot)' },
+        info: { text: 'var(--info-text)', bg: 'var(--info-bg)', dot: 'var(--info-dot)' },
+        mute: { text: 'var(--mute-text)', bg: 'var(--mute-bg)', dot: 'var(--mute-dot)' },
+        err: { text: 'var(--err-text)', bg: 'var(--err-bg)' },
+        warn: { text: 'var(--warn-text)', bg: 'var(--warn-bg)' },
       },
-      // Une seule famille (Archivo, variable en graisse et en largeur) :
-      // display = capitales larges, mono = chiffres tabulaires.
-      fontFamily: { display: archivo, sans: archivo, mono: archivo },
-      fontSize: {
-        'kiosk-tag': ['22px', { letterSpacing: '0.14em', fontWeight: '600' }],
-        display: ['34px', '40px'],
-        counter: ['52px', '52px'],
-        room: ['34px', '34px'],
-        title: ['16px', '21px'],
-        meta: ['14px', '19px'],
-        overline: ['11px', { letterSpacing: '0.12em' }],
-      },
-      borderRadius: { 'sg-xs': '4px', 'sg-sm': '6px', 'sg-md': '8px', 'sg-lg': '10px' },
-      boxShadow: { sg: 'var(--sg-shadow)', raised: 'var(--sg-raised)' },
-      transitionDuration: { sync: '650ms', switch: '180ms' },
+      fontFamily: { sans: ['"Plus Jakarta Sans Variable"', 'system-ui', 'sans-serif'] },
+      boxShadow: { card: 'var(--shadow-card)', pop: 'var(--shadow-pop)' },
+      borderRadius: { card: '16px', btn: '10px' },
+      transitionDuration: { switch: '180ms' },
     },
   },
   plugins: [],

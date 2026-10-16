@@ -9,7 +9,7 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
-    "@fontsource-variable/archivo": "5.3.0",
+    "@fontsource-variable/plus-jakarta-sans": "5.3.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },

@@ -165,14 +165,6 @@ class SyncStore {
     }
   }
 
-  async reset() {
-    try {
-      this.replaceAll(await api.reset(), 'reset');
-    } catch (e) {
-      this.emitError(null, e instanceof HttpError ? e.message : 'Serveur injoignable.');
-    }
-  }
-
   private setIntent(n: number, state: ButtonValue, kind: Kind) {
     this.intents.set(n, { state, kind, since: Date.now() });
     this.notify();
@@ -297,6 +289,11 @@ class SyncStore {
     window.addEventListener('pageshow', wake);
     window.addEventListener('online', () => this.wake());
     window.addEventListener('offline', () => this.ws && this.drop(this.ws));
+  }
+
+  /** Relit la configuration publique (après un changement de réglages). */
+  refreshConfig() {
+    this.loadConfig(0);
   }
 
   private loadConfig(attempt = 0) {
